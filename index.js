@@ -49,6 +49,7 @@ const verifyUser = (req, res, next) => {
 async function run() {
   try{
     const database = client.db("TeamTune");
+    const userCollection = database.collection("Users");
 
     app.post('/jwt', async (req, res) => {
       const user = req.body;
@@ -85,6 +86,24 @@ async function run() {
         res.status(500).json({ message: "Internal server error" });
       }
     });
+
+    app.post('/users', async (req, res) => {
+      try {
+        const user = req.body;
+        const query = { email: user.email };
+        const existingUser = await userCollection.findOne(query);
+        
+        if (existingUser) {
+          return res.send({ message: 'User already exists', insertedId: null });
+        }
+        const result = await userCollection.insertOne(user);
+        res.send(result);
+      } catch (error) {
+        console.error('Error inserting user:', error);
+        res.status(500).json({ message: 'Internal server error' });
+      }
+    });
+    
 
   }
   finally {
