@@ -28,7 +28,7 @@ const client = new MongoClient(uri, {
 });
 
 
-const verifyUser = (req, res, next) => {
+const useToken = (req, res, next) => {
   const token = req.cookies.JWT_TOKEN;
   if (!token) {
     return res.status(401).json({ error: 'Unauthorized' });
@@ -69,17 +69,15 @@ async function run() {
       res.status(200).json({ message: "Logout successful" });
     });
     
-    app.get("/fireduser/:email", async (req, res) => {
+    app.get("/user/:email", async (req, res) => {
       const email = req.params.email;
       try {
-        const user = await database
-          .collection("FiredUser")
-          .findOne({ email }); 
+        const user = await userCollection.findOne({ email }); 
         if (user) {
           res.json(user);
         }
         else {
-          res.json({});
+          res.status(404).send("User not found");
         } 
       } catch (error) {
         console.error("Error finding email", error);
