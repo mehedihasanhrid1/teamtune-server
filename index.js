@@ -103,7 +103,7 @@ async function run() {
 
     app.get("/employee-list", useToken, async (req, res) => {
       try {
-        const users = await userCollection.find({ role: 'user' }).toArray();
+        const users = await userCollection.find({ role: "user" }).toArray();
         res.json(users);
       } catch (error) {
         console.error("Error fetching users", error);
@@ -111,17 +111,71 @@ async function run() {
       }
     });
 
-    app.patch("/users/:id", async (req, res) => {
+    app.get("/all-employee-list", useToken, async (req, res) => {
+      try {
+        const users = await userCollection
+          .find({ verify: true, role: { $ne: "admin" } })
+          .toArray();
+
+        res.json(users);
+      } catch (error) {
+        console.error("Error fetching employees", error);
+        res.status(500).json({ message: "Internal server error" });
+      }
+    });
+
+
+    app.patch("/make-hr/:userId", useToken, async (req, res) => {
+      try {
+        const userId = req.params.userId;
+
+        await userCollection.updateOne(
+          { _id: new ObjectId(userId) },
+          { $set: { role: "hr" } }
+        );
+
+        res
+          .status(200)
+          .json({ success: true, message: "User has been made HR." });
+      } catch (error) {
+        console.error("Error making user HR:", error);
+        res
+          .status(500)
+          .json({ success: false, message: "Internal server error" });
+      }
+    });
+
+    app.patch("/fire/:userId", useToken, async (req, res) => {
+      try {
+        const userId = req.params.userId;
+
+        await userCollection.updateOne(
+          { _id: new ObjectId(userId) },
+          { $set: { fired: true } }
+        );
+
+        res
+          .status(200)
+          .json({ success: true, message: "Employee has been fired." });
+      } catch (error) {
+        console.error("Error firing employee:", error);
+        res
+          .status(500)
+          .json({ success: false, message: "Internal server error" });
+      }
+    });
+
+    app.patch("/users/:id", useToken, async (req, res) => {
       const userId = req.params.id;
       const { verify } = req.body;
-    
+
       try {
         const updatedUser = await userCollection.findOneAndUpdate(
           { _id: new ObjectId(userId) },
           { $set: { verify } },
-          { returnDocument: 'after' }
+          { returnDocument: "after" }
         );
-    
+
         if (updatedUser) {
           res.json(updatedUser);
         } else {
@@ -132,8 +186,6 @@ async function run() {
         res.status(500).json({ message: "Internal server error" });
       }
     });
-
-    
   } finally {
     // await client.close();
   }
