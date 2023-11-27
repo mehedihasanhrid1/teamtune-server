@@ -27,18 +27,17 @@ const client = new MongoClient(uri, {
   },
 });
 
-
 const useToken = (req, res, next) => {
   const token = req.cookies.JWT_TOKEN;
   if (!token) {
-    return res.status(401).json({ error: 'Unauthorized' });
+    return res.status(401).json({ error: "Unauthorized" });
   }
   jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
     if (err) {
-      if (err.name === 'TokenExpiredError') {
-        return res.status(401).json({ error: 'Token expired' });
+      if (err.name === "TokenExpiredError") {
+        return res.status(401).json({ error: "Token expired" });
       } else {
-        return res.status(403).json({ error: 'Forbidden' });
+        return res.status(403).json({ error: "Forbidden" });
       }
     }
     req.user = decoded;
@@ -47,64 +46,95 @@ const useToken = (req, res, next) => {
 };
 
 async function run() {
-  try{
+  try {
     const database = client.db("TeamTune");
     const userCollection = database.collection("Users");
 
-    app.post('/jwt', async (req, res) => {
+    app.post("/jwt", async (req, res) => {
       const user = req.body;
       const token = jwt.sign(user, process.env.JWT_SECRET, {
-          expiresIn: '1h'
+        expiresIn: "1h",
       });
-      res.cookie('JWT_TOKEN', token, {
-              httpOnly: true,
-              secure: true,
-              sameSite: 'none'
-          })
-          .send({ success: true })
-    })
+      res
+        .cookie("JWT_TOKEN", token, {
+          httpOnly: true,
+          secure: true,
+          sameSite: "none",
+        })
+        .send({ success: true });
+    });
 
     app.post("/logout", (req, res) => {
-      res.clearCookie('JWT_TOKEN', {maxAge: 0});
+      res.clearCookie("JWT_TOKEN", { maxAge: 0 });
       res.status(200).json({ message: "Logout successful" });
     });
-    
+
     app.get("/user/:email", async (req, res) => {
       const email = req.params.email;
       try {
-        const user = await userCollection.findOne({ email }); 
+        const user = await userCollection.findOne({ email });
         if (user) {
           res.json(user);
-        }
-        else {
+        } else {
           res.status(404).send("User not found");
-        } 
+        }
       } catch (error) {
         console.error("Error finding email", error);
         res.status(500).json({ message: "Internal server error" });
       }
     });
 
-    app.post('/users', async (req, res) => {
+    app.post("/users", async (req, res) => {
       try {
         const user = req.body;
         const query = { email: user.email };
         const existingUser = await userCollection.findOne(query);
-        
+
         if (existingUser) {
-          return res.send({ message: 'User already exists', insertedId: null });
+          return res.send({ message: "User already exists", insertedId: null });
         }
         const result = await userCollection.insertOne(user);
         res.send(result);
       } catch (error) {
-        console.error('Error inserting user:', error);
-        res.status(500).json({ message: 'Internal server error' });
+        console.error("Error inserting user:", error);
+        res.status(500).json({ message: "Internal server error" });
       }
     });
-    
 
-  }
-  finally {
+    app.get("/employee-list", useToken, async (req, res) => {
+      try {
+        const users = await userCollection.find({ role: 'user' }).toArray();
+        res.json(users);
+      } catch (error) {
+        console.error("Error fetching users", error);
+        res.status(500).json({ message: "Internal server error" });
+      }
+    });
+
+    app.patch("/users/:id", async (req, res) => {
+      const userId = req.params.id;
+      const { verify } = req.body;
+    
+      try {
+        const updatedUser = await userCollection.findOneAndUpdate(
+          { _id: new ObjectId(userId) },
+          { $set: { verify } },
+          { returnDocument: 'after' }
+        );
+    
+        if (updatedUser) {
+          res.json(updatedUser);
+        } else {
+          res.status(404).json({ message: "User not found" });
+        }
+      } catch (error) {
+        console.error("Error updating user verification status", error);
+        res.status(500).json({ message: "Internal server error" });
+      }
+    });
+
+    
+  } finally {
     // await client.close();
   }
 }
