@@ -49,6 +49,7 @@ async function run() {
   try {
     const database = client.db("TeamTune");
     const userCollection = database.collection("Users");
+    const workCollection = database.collection("WorkSheet");
 
     app.post("/jwt", async (req, res) => {
       const user = req.body;
@@ -101,10 +102,36 @@ async function run() {
       }
     });
 
+    app.post("/worksheet", async (req, res) => {
+      try {
+        const data = req.body;
+        const result = await workCollection.insertOne(data);
+        res.send(result);
+      } catch (error) {
+        console.error("Error inserting user:", error);
+        res.status(500).json({ message: "Internal server error" });
+      }
+    });
+
     app.get("/employee-list", useToken, async (req, res) => {
       try {
         const users = await userCollection.find({ role: "user" }).toArray();
         res.json(users);
+      } catch (error) {
+        console.error("Error fetching users", error);
+        res.status(500).json({ message: "Internal server error" });
+      }
+    });
+
+    app.get("/worksheet/:email", useToken, async (req, res) => {
+      const email = req.params.email;
+      try {
+        const works = await workCollection.find({ email: email }).toArray();
+        if (works) {
+          res.json(works);
+        } else {
+          res.status(404).send("Work not found");
+        }
       } catch (error) {
         console.error("Error fetching users", error);
         res.status(500).json({ message: "Internal server error" });
