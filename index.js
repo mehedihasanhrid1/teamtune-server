@@ -5,6 +5,7 @@ require("dotenv").config();
 const app = express();
 const jwt = require("jsonwebtoken");
 const cookieParser = require("cookie-parser");
+const stripe = require('stripe')(process.env.STRIPE_SECRET);
 const port = process.env.PORT || 5000;
 
 const corsConfig = {
@@ -50,6 +51,7 @@ async function run() {
     const database = client.db("TeamTune");
     const userCollection = database.collection("Users");
     const workCollection = database.collection("WorkSheet");
+    const paymentCollection = database.collection("Payments");
 
     app.post("/jwt", async (req, res) => {
       const user = req.body;
@@ -85,6 +87,21 @@ async function run() {
       }
     });
 
+    app.get("/payments/:id", useToken, async (req, res) => {
+      const id = req.params.id;
+      try {
+        const result = await paymentCollection.find({ userId : id }).toArray();;
+        if (result) {
+          res.json(result);
+        } else {
+          res.status(404).send("Data not found");
+        }
+      } catch (error) {
+        console.error("Error finding data", error);
+        res.status(500).json({ message: "Internal server error" });
+      }
+    });
+
     app.post("/users", async (req, res) => {
       try {
         const user = req.body;
@@ -95,6 +112,17 @@ async function run() {
           return res.send({ message: "User already exists", insertedId: null });
         }
         const result = await userCollection.insertOne(user);
+        res.send(result);
+      } catch (error) {
+        console.error("Error inserting user:", error);
+        res.status(500).json({ message: "Internal server error" });
+      }
+    });
+
+    app.post("/payments", async (req, res) => {
+      try {
+        const paymentData = req.body;
+        const result = await paymentCollection.insertOne(paymentData);
         res.send(result);
       } catch (error) {
         console.error("Error inserting user:", error);
@@ -161,8 +189,6 @@ async function run() {
       }
     });
 
-
-
     app.patch("/make-hr/:userId", useToken, async (req, res) => {
       try {
         const userId = req.params.userId;
@@ -224,6 +250,21 @@ async function run() {
         res.status(500).json({ message: "Internal server error" });
       }
     });
+
+    app.post('/paymentintent', async (req, res) => {
+      const { salary } = req.body;
+      const amount = parseInt(salary * 100);
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: 'usd',
+        payment_method_types: ['card']
+      });
+
+      res.send({
+        clientSecret: paymentIntent.client_secret
+      })
+    });
+
   } finally {
     // await client.close();
   }
