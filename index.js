@@ -151,6 +151,17 @@ async function run() {
       }
     });
 
+    app.get("/worksheets", useToken, async (req, res) => {
+      try {
+        const worksheet = await workCollection.find().toArray();
+        res.json(worksheet);
+      } catch (error) {
+        console.error("Error fetching worksheets", error);
+        res.status(500).json({ message: "Internal server error" });
+      }
+    });
+
+
 
     app.patch("/make-hr/:userId", useToken, async (req, res) => {
       try {
