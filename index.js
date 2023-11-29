@@ -9,8 +9,8 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET);
 const port = process.env.PORT || 5000;
 
 const corsConfig = {
-  origin: ["http://localhost:5173"],
-  credentials: true,
+  origin:['http://localhost:5173' , 'https://hrid-phero.web.app' , 'https://hrid-phero.firebaseapp.com'],
+credentials:true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
 };
 
