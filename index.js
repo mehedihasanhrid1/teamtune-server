@@ -87,10 +87,10 @@ async function run() {
       }
     });
 
-    app.get("/payments/:id", useToken, async (req, res) => {
-      const id = req.params.id;
+    app.get("/payments/:email", useToken, async (req, res) => {
+      const userEmail = req.params.email;
       try {
-        const result = await paymentCollection.find({ userId : id }).toArray();;
+        const result = await paymentCollection.find({ email : userEmail }).toArray();;
         if (result) {
           res.json(result);
         } else {
