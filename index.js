@@ -231,22 +231,24 @@ async function run() {
     app.patch("/fire/:userId", useToken, async (req, res) => {
       try {
         const userId = req.params.userId;
-
+        const { fired } = req.body;
+    
         await userCollection.updateOne(
           { _id: new ObjectId(userId) },
-          { $set: { fired: true } }
+          { $set: { fired } }
         );
-
+    
         res
           .status(200)
-          .json({ success: true, message: "Employee has been fired." });
+          .json({ success: true, message: "Employee status updated." });
       } catch (error) {
-        console.error("Error firing employee:", error);
+        console.error("Error updating employee status:", error);
         res
           .status(500)
           .json({ success: false, message: "Internal server error" });
       }
     });
+    
 
     app.patch("/users/:id", useToken, async (req, res) => {
       const userId = req.params.id;
