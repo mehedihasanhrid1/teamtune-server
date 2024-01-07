@@ -87,6 +87,25 @@ async function run() {
       }
     });
 
+    app.delete("/delete/:userId", async (req, res) => {
+      try {
+        const { userId } = req.params;
+        const result = await userCollection.deleteOne({
+          _id: new ObjectId(userId),
+        });
+        if (result.deletedCount === 1) {
+          res.json(result);
+        } else {
+          res.status(404).json({ error: "User not found." });
+        }
+      } catch (error) {
+        console.error("Error deleting employee:", error);
+        res
+          .status(500)
+          .json({ error: "An error occurred while deleting the employee." });
+      }
+    });
+
     app.get("/payments/:email", useToken, async (req, res) => {
       const userEmail = req.params.email;
       try {
